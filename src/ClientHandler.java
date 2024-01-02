@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class ClientHandler implements Runnable{
 
@@ -31,7 +32,19 @@ public class ClientHandler implements Runnable{
         while(socket.isConnected()){
             try{
                 messageFromClient = bufferedReader.readLine();
-                broadcastMessage(messageFromClient);
+                String[] split_message = messageFromClient.split(" ");      // THINK A BETTER METHOD TO DO THIS
+                if (split_message[2].equals("/w")){
+
+                    String sender_username = split_message[0];
+                    String recipient_username = split_message[3];
+                    String message = String.join(" ", Arrays.stream(split_message, 4, split_message.length).toArray(String[]::new));
+                    // FACEPALM, FIND ANOTHER SOLUTION TO THIS
+                    whisperMessage(message, sender_username, recipient_username);
+                }
+                else{
+                    broadcastMessage(messageFromClient);
+                }
+
             }catch(IOException e){
                 closeEverything(socket, bufferedReader, bufferedWriter);
                 break;
@@ -39,7 +52,7 @@ public class ClientHandler implements Runnable{
         }
     }
 
-    public void broadcastMessage(String messageToSend){
+    public void broadcastMessage(String messageToSend){         // NEEDS OPTIMIZATION
         for (ClientHandler clientHandler : clientHandlers){
             try{
                 if (!clientHandler.clientUsername.equals(clientUsername)){
@@ -50,6 +63,27 @@ public class ClientHandler implements Runnable{
             }catch(IOException e){
                 closeEverything(socket, bufferedReader, bufferedWriter);
             }
+        }
+    }
+
+    public void whisperMessage(String messageToSend, String sender_username, String recipient_username) throws IOException {
+        boolean userFound = false;
+        for (ClientHandler clientHandler : clientHandlers){
+            try{
+                if (clientHandler.clientUsername.equals(recipient_username)){
+                    userFound = true;
+                    clientHandler.bufferedWriter.write(sender_username + "(whisper) : " + messageToSend);
+                    clientHandler.bufferedWriter.newLine();
+                    clientHandler.bufferedWriter.flush();
+                }
+            }catch(IOException e){
+                closeEverything(socket, bufferedReader, bufferedWriter);
+            }
+        }
+        if (!userFound){
+            bufferedWriter.write(recipient_username + " does not exist in the chat");
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
         }
     }
     public void removeClientHandler(){
