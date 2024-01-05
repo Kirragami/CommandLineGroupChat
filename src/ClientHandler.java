@@ -17,7 +17,17 @@ public class ClientHandler implements Runnable{
             this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.clientUsername = bufferedReader.readLine();
-            clientHandlers.add(this);
+            boolean name_exists = false;
+            for (ClientHandler clientHandler : clientHandlers) {
+                if (clientHandler.clientUsername.equals(clientUsername)) {
+                    name_exists = true;
+                }
+            }
+            if (!name_exists){
+                clientHandlers.add(this);
+            }
+
+
             broadcastMessage("SERVER : " + clientUsername + " has joined the chat!");
 
         }catch(IOException e){
